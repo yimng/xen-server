@@ -147,7 +147,7 @@
     "prebuild": "index-modules src/api src/xapi/mixins src/xo-mixins",
     "predev": "npm run prebuild",
     "prepublish": "npm run build",
-    "start": "node bin/xo-server",
+    "start": "node bin/vs-server",
     "test": "jest"
   },
   "babel": {
