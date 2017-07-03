@@ -367,7 +367,6 @@ export function pSettle (promises) {
 
 export {
   all as pAll,
-  catchPlus as pCatch,
   delay as pDelay,
   fromCallback as pFromCallback,
   isPromise,
@@ -597,4 +596,14 @@ export const splitFirst = (string, separator) => {
     string.slice(0, i),
     string.slice(i + separator.length)
   ]
+}
+
+// -------------------------------------------------------------------
+
+export const getFirstPropertyName = object => {
+  for (const key in object) {
+    if (Object.prototype.hasOwnProperty.call(object, key)) {
+      return key
+    }
+  }
 }

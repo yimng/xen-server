@@ -12,12 +12,13 @@ sortBy = require 'lodash/sortBy'
 startsWith = require 'lodash/startsWith'
 {coroutine: $coroutine} = require 'bluebird'
 {format} = require 'json-rpc-peer'
-
+{ ignoreErrors } = require('promise-toolbox')
 {
   forbiddenOperation,
   invalidParameters,
   unauthorized
 } = require('xo-common/api-errors')
+
 {
   forEach,
   formatXml: $js2xml,
@@ -25,10 +26,8 @@ startsWith = require 'lodash/startsWith'
   map,
   mapFilter,
   mapToArray,
-  noop,
   parseSize,
   parseXml,
-  pCatch,
   pFinally
 } = require '../utils'
 {isVmRunning: $isVmRunning} = require('../xapi')
@@ -174,7 +173,7 @@ create = $coroutine (params) ->
     )
 
   if params.bootAfterCreate
-    pCatch.call(xapi.startVm(vm._xapiId), noop)
+    ignoreErrors.call(xapi.startVm(vm._xapiId))
 
   return vm.id
 
@@ -324,9 +323,8 @@ delete_ = $coroutine ({vm, delete_disks: deleteDisks = false }) ->
   @getAllAcls().then((acls) =>
     Promise.all(mapFilter(acls, (acl) =>
       if (acl.object == vm.id)
-        return pCatch.call(
-          @removeAcl(acl.subject, acl.object, acl.action),
-          noop
+        return ignoreErrors.call(
+          @removeAcl(acl.subject, acl.object, acl.action)
         )
     ))
   )
@@ -334,13 +332,12 @@ delete_ = $coroutine ({vm, delete_disks: deleteDisks = false }) ->
   # Update IP pools
   yield Promise.all(map(vm.VIFs, (vifId) =>
     vif = xapi.getObject(vifId)
-    return pCatch.call(
+    return ignoreErrors.call(
       this.allocIpAddresses(
         vifId,
         null,
         concat(vif.ipv4_allowed, vif.ipv6_allowed)
-      ),
-      noop
+      )
     )
   ))
 
@@ -364,12 +361,11 @@ delete_ = $coroutine ({vm, delete_disks: deleteDisks = false }) ->
     resourceSetUsage = @computeVmResourcesUsage(vm)
     ipPoolsUsage = yield @computeVmIpPoolsUsage(vm)
 
-    pCatch.call(
+    ignoreErrors.call(
       @releaseLimitsInResourceSet(
         merge(resourceSetUsage, ipPoolsUsage),
         resourceSet
-      ),
-      noop
+      )
     )
 
   return xapi.deleteVm(vm._xapiId, deleteDisks)
@@ -426,6 +422,7 @@ exports.insertCd = insertCd
 migrate = $coroutine ({
   vm,
   host,
+  sr,
   mapVdisSrs,
   mapVifsNetworks,
   migrationNetwork
@@ -456,6 +453,7 @@ migrate = $coroutine ({
     throw unauthorized()
 
   yield @getXapi(vm).migrateVm(vm._xapiId, @getXapi(host), host._xapiId, {
+    sr: sr && @getObject(sr, 'SR')._xapiId
     migrationNetworkId: migrationNetwork?._xapiId
     mapVifsNetworks: mapVifsNetworksXapi,
     mapVdisSrs: mapVdisSrsXapi,
@@ -469,6 +467,9 @@ migrate.params = {
 
   # Identifier of the host to migrate to.
   targetHost: { type: 'string' }
+
+  # Identifier of the default SR to migrate to.
+  sr: { type: 'string', optional: true }
 
   # Map VDIs IDs --> SRs IDs
   mapVdisSrs: { type: 'object', optional: true }
@@ -726,13 +727,20 @@ exports.rollingDeltaBackup = rollingDeltaBackup
 
 #---------------------------------------------------------------------
 
-importDeltaBackup = ({sr, remote, filePath}) ->
-  return @importDeltaVmBackup({sr, remoteId: remote, filePath})
+importDeltaBackup = ({sr, remote, filePath, mapVdisSrs}) ->
+  mapVdisSrsXapi = {}
+
+  forEach mapVdisSrs, (srId, vdiId) =>
+    mapVdisSrsXapi[vdiId] = @getObject(srId, 'SR')._xapiId
+
+  return @importDeltaVmBackup({sr, remoteId: remote, filePath, mapVdisSrs: mapVdisSrsXapi})
 
 importDeltaBackup.params = {
   sr: { type: 'string' }
   remote: { type: 'string' }
   filePath: { type: 'string' }
+  # Map VDIs UUIDs --> SRs IDs
+  mapVdisSrs: { type: 'object', optional: true }
 }
 
 importDeltaBackup.resolve = {
@@ -1172,7 +1180,7 @@ createInterface = $coroutine ({
   { push } = ipAddresses = []
   push.apply(ipAddresses, allowedIpv4Addresses) if allowedIpv4Addresses
   push.apply(ipAddresses, allowedIpv6Addresses) if allowedIpv6Addresses
-  pCatch.call(@allocIpAddresses(vif.$id, allo), noop) if ipAddresses.length
+  ignoreErrors.call(@allocIpAddresses(vif.$id, allo)) if ipAddresses.length
 
   return vif.$id
 
