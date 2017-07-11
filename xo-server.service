@@ -1,14 +1,15 @@
-# systemd service for XO-Server.
+# systemd service for VS-Server.
 
 [Unit]
-Description= XO Server
+Description= VS Server
 After=network-online.target
 
 [Service]
-Environment="DEBUG=xo:main"
-ExecStart=/usr/local/bin/xo-server
+Environment="DEBUG=vs:main"
+ExecStart=/root/xo/xo-server/bin/vs-server
 Restart=always
-SyslogIdentifier=xo-server
+SyslogIdentifier=vs-server
+WorkingDirectory=/root/xo/xo-server/bin
 
 [Install]
 WantedBy=multi-user.target

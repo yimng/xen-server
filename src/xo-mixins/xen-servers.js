@@ -67,7 +67,7 @@ export default class {
     //        Could we use tokens instead?
     // TODO: use plain objects
     const server = await this._servers.create({
-      allowUnauthorized: allowUnauthorized ? 'true' : undefined,
+      allowUnauthorized: 'true',
       enabled: 'true',
       host,
       label: label || undefined,

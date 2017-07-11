@@ -22,7 +22,7 @@ html
             input.form-control(
               name = 'username'
               type = 'text'
-              placeholder = 'Username'
+              placeholder = '用户名'
               required
             )
           .input-group.mb-1
@@ -31,7 +31,7 @@ html
             input.form-control(
               name = 'password'
               type = 'password'
-              placeholder = 'Password'
+              placeholder = '密码'
               required
             )
           .checkbox
@@ -41,10 +41,10 @@ html
                 type = 'checkbox'
               )
               | &nbsp;
-              | Remember me
+              | 记住我
           div
             button.btn.btn-block.btn-info
               i.fa.fa-sign-in
-              |  Sign in
+              |  登录
           each label, id in strategies
             div: a(href = 'signin/' + id) Sign in with #{label}
