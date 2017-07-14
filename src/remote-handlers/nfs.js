@@ -47,7 +47,7 @@ export default class NfsHandler extends LocalHandler {
 
   async _mount () {
     await fs.ensureDir(this._getRealPath())
-    return execa('mount', ['-t', 'nfs', '-o', 'vers=3', `${this._remote.host}:${this._remote.path}`, this._getRealPath()])
+    return execa('mount', ['-t', 'nfs', `${this._remote.host}:${this._remote.path}`, this._getRealPath()])
   }
 
   async _sync () {
