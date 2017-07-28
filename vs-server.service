@@ -1,0 +1,15 @@
+# systemd service for VS-Server.
+
+[Unit]
+Description= VS Server
+After=network-online.target
+
+[Service]
+Environment="DEBUG=vs:main"
+ExecStart=/usr/lib/node_modules/vs-server/bin/vs-server
+Restart=always
+SyslogIdentifier=vs-server
+WorkingDirectory=/usr/lib/node_modules/vs-server/bin
+
+[Install]
+WantedBy=multi-user.target
