@@ -947,7 +947,8 @@ export default class {
     }
   }
 
-  async rollingBackupVm ({vm, remoteId, tag, retention, compress, onlyMetadata}) {
+  @deferrable.onFailure
+  async rollingBackupVm ($onFailure, {vm, remoteId, tag, retention, compress, onlyMetadata}) {
     const handler = await this._xo.getRemoteHandler(remoteId)
 
     const files = await handler.list()
@@ -959,6 +960,7 @@ export default class {
     const file = `${date}_${tag}_${vm.name_label}.xva`
 
     const data = await this._backupVm(vm, handler, file, {compress, onlyMetadata})
+    $onFailure(() => handler.unlink(file))
     await this._removeOldBackups(backups, handler, undefined, backups.length - (retention - 1))
 
     return data
