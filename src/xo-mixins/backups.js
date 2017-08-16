@@ -823,8 +823,9 @@ export default class {
       }
     }
 
-    $onFailure(() => asyncMap(fulFilledVdiBackups, vdiBackup =>
+    $onFailure(() => asyncMap(fulFilledVdiBackups, vdiBackup => {
       handler.unlink(`${dir}/${vdiBackup.value()}`)::ignoreErrors()
+    }
     ))
 
     if (error) {
@@ -936,18 +937,25 @@ export default class {
 
     const sizeStream = createSizeStream()
 
-    sourceStream
-      .pipe(sizeStream)
-      .pipe(targetStream)
+    try {
+      sourceStream
+        .pipe(sizeStream)
+        .pipe(targetStream)
 
-    await promise
+      sourceStream.on('error', error => targetStream.emit('error', error))
+      await promise
+    } catch (error) {
+      // delete the failed backup files
+      console.log(error)
+      handler.unlink(file)
+      throw error
+    }
 
     return {
       size: sizeStream.size
     }
   }
 
-  @deferrable.onFailure
   async rollingBackupVm ($onFailure, {vm, remoteId, tag, retention, compress, onlyMetadata}) {
     const handler = await this._xo.getRemoteHandler(remoteId)
 
@@ -960,7 +968,6 @@ export default class {
     const file = `${date}_${tag}_${vm.name_label}.xva`
 
     const data = await this._backupVm(vm, handler, file, {compress, onlyMetadata})
-    $onFailure(() => handler.unlink(file))
     await this._removeOldBackups(backups, handler, undefined, backups.length - (retention - 1))
 
     return data
