@@ -956,7 +956,7 @@ export default class {
     }
   }
 
-  async rollingBackupVm ($onFailure, {vm, remoteId, tag, retention, compress, onlyMetadata}) {
+  async rollingBackupVm ({vm, remoteId, tag, retention, compress, onlyMetadata}) {
     const handler = await this._xo.getRemoteHandler(remoteId)
 
     const files = await handler.list()
