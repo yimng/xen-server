@@ -707,7 +707,8 @@ export default class Xapi extends XapiBase {
   }
 
   // Returns a stream to the exported VM.
-  async exportVm (vmId, {
+  @cancellable
+  async exportVm ($cancelToken, vmId, {
     compress = true,
     onlyMetadata = false
   } = {}) {
@@ -721,7 +722,7 @@ export default class Xapi extends XapiBase {
       snapshotRef = (await this._snapshotVm(vm)).$ref
     }
 
-    const promise = this.getResource(onlyMetadata ? '/export_metadata/' : '/export/', {
+    const promise = this.getResource($cancelToken, onlyMetadata ? '/export_metadata/' : '/export/', {
       host,
       query: {
         ref: snapshotRef || vm.$ref,

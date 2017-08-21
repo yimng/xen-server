@@ -926,14 +926,17 @@ export default class {
     return this._backupVm(vm, handler, file, {compress, onlyMetadata})
   }
 
-  async _backupVm (vm, handler, file, {compress, onlyMetadata}) {
+  @deferrable.onFailure
+  async _backupVm ($onFailure, vm, handler, file, {compress, onlyMetadata}) {
     const targetStream = await handler.createOutputStream(file)
     const promise = eventToPromise(targetStream, 'finish')
 
-    const sourceStream = await this._xo.getXapi(vm).exportVm(vm._xapiId, {
+    const { cancel, token } = CancelToken.source()
+    const sourceStream = await this._xo.getXapi(vm).exportVm(token, vm._xapiId, {
       compress,
       onlyMetadata: onlyMetadata || false
     })
+    $onFailure(cancel)
 
     const sizeStream = createSizeStream()
 
