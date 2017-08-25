@@ -931,16 +931,16 @@ export default class {
     const targetStream = await handler.createOutputStream(file)
     const promise = eventToPromise(targetStream, 'finish')
 
-    const { cancel, token } = CancelToken.source()
-    const sourceStream = await this._xo.getXapi(vm).exportVm(token, vm._xapiId, {
-      compress,
-      onlyMetadata: onlyMetadata || false
-    })
-    $onFailure(cancel)
-
     const sizeStream = createSizeStream()
-
     try {
+      const { cancel, token } = CancelToken.source()
+      const sourceStream = await this._xo.getXapi(vm).exportVm(token, vm._xapiId, {
+        compress,
+        onlyMetadata: onlyMetadata || false
+      })
+      $onFailure(cancel)
+
+
       sourceStream
         .pipe(sizeStream)
         .pipe(targetStream)
