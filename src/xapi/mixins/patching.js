@@ -282,9 +282,9 @@ export default {
         return
       }
 
-      vdi = await this.createTemporaryVdiOnSr(stream, sr, '[XO] Patch ISO', 'small temporary VDI to store a patch ISO')
+      vdi = await this.createTemporaryVdiOnSr(stream, sr, '[VS] Patch ISO', 'small temporary VDI to store a patch ISO')
     } else {
-      vdi = await this.createTemporaryVdiOnHost(stream, hostId, '[XO] Patch ISO', 'small temporary VDI to store a patch ISO')
+      vdi = await this.createTemporaryVdiOnHost(stream, hostId, '[VS] Patch ISO', 'small temporary VDI to store a patch ISO')
     }
     $defer(() => this._deleteVdi(vdi))
 

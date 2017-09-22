@@ -419,7 +419,7 @@ export default class {
     const dstVm = await (async () => {
       const { cancel, token } = CancelToken.source()
       const delta = await srcXapi.exportDeltaVm(token, srcVm.$id, localBaseUuid, {
-        snapshotNameLabel: `XO_DELTA_EXPORT: ${targetSr.name_label} (${targetSr.uuid})`
+        snapshotNameLabel: `VS_DELTA_EXPORT: ${targetSr.name_label} (${targetSr.uuid})`
       })
       $onFailure(() => srcXapi.deleteVm(delta.vm.uuid))
       $onFailure(cancel)
@@ -680,7 +680,7 @@ export default class {
 
     // For old versions: remove old bases if exists.
     const bases = sortBy(
-      filter(vdiParent.$snapshots, { name_label: 'XO_DELTA_BASE_VDI_SNAPSHOT' }),
+      filter(vdiParent.$snapshots, { name_label: 'VS_DELTA_BASE_VDI_SNAPSHOT' }),
       base => base.snapshot_time
     )
     forEach(bases, base => { xapi.deleteVdi(base.$id)::ignoreErrors() })
@@ -750,7 +750,7 @@ export default class {
 
     // Get most recent base.
     const bases = sortBy(
-      filter(vm.$snapshots, { name_label: `XO_DELTA_BASE_VM_SNAPSHOT_${tag}` }),
+      filter(vm.$snapshots, { name_label: `VS_DELTA_BASE_VM_SNAPSHOT_${tag}` }),
       base => base.snapshot_time
     )
     const baseVm = bases.pop()
@@ -779,7 +779,7 @@ export default class {
     // Export...
     const { cancel, token } = CancelToken.source()
     const delta = await xapi.exportDeltaVm(token, vm.$id, baseVm && baseVm.$id, {
-      snapshotNameLabel: `XO_DELTA_BASE_VM_SNAPSHOT_${tag}`,
+      snapshotNameLabel: `VS_DELTA_BASE_VM_SNAPSHOT_${tag}`,
       fullVdisRequired,
       disableBaseTags: true
     })

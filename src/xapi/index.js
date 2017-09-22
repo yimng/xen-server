@@ -137,7 +137,7 @@ export default class Xapi extends XapiBase {
   }
 
   createTask (name = 'untitled task', description) {
-    return super.createTask(`[XO] ${name}`, description)
+    return super.createTask(`[VS] ${name}`, description)
   }
 
   // =================================================================
@@ -1126,7 +1126,7 @@ export default class Xapi extends XapiBase {
       throw new Error('stream must have a length')
     }
 
-    const vdi = await this.createTemporaryVdiOnHost(stream, hostId, '[XO] Supplemental pack ISO', 'small temporary VDI to store a supplemental pack ISO')
+    const vdi = await this.createTemporaryVdiOnHost(stream, hostId, '[VS] Supplemental pack ISO', 'small temporary VDI to store a supplemental pack ISO')
     $defer(() => this._deleteVdi(vdi))
 
     await this._callInstallationPlugin(this.getObject(hostId).$ref, vdi.uuid)
@@ -1147,7 +1147,7 @@ export default class Xapi extends XapiBase {
 
     // Shared SR available: create only 1 VDI for all the installations
     if (sr) {
-      const vdi = await this.createTemporaryVdiOnSr(stream, sr, '[XO] Supplemental pack ISO', 'small temporary VDI to store a supplemental pack ISO')
+      const vdi = await this.createTemporaryVdiOnSr(stream, sr, '[VS] Supplemental pack ISO', 'small temporary VDI to store a supplemental pack ISO')
       $defer(() => this._deleteVdi(vdi))
 
       // Install pack sequentially to prevent concurrent access to the unique VDI
@@ -1173,7 +1173,7 @@ export default class Xapi extends XapiBase {
         throw new Error('no SR available to store installation file')
       }
 
-      const vdi = await this.createTemporaryVdiOnSr(pt, sr, '[XO] Supplemental pack ISO', 'small temporary VDI to store a supplemental pack ISO')
+      const vdi = await this.createTemporaryVdiOnSr(pt, sr, '[VS] Supplemental pack ISO', 'small temporary VDI to store a supplemental pack ISO')
       $defer(() => this._deleteVdi(vdi))
 
       await this._callInstallationPlugin(host.$ref, vdi.uuid)
@@ -1517,7 +1517,7 @@ export default class Xapi extends XapiBase {
 
   // vm_operations: http://xapi-project.github.io/xen-api/classes/vm.html
   async addForbiddenOperationToVm (vmId, operation, reason) {
-    await this.call('VM.add_to_blocked_operations', this.getObject(vmId).$ref, operation, `[XO] ${reason}`)
+    await this.call('VM.add_to_blocked_operations', this.getObject(vmId).$ref, operation, `[VS] ${reason}`)
   }
 
   async removeForbiddenOperationFromVm (vmId, operation) {
@@ -2099,7 +2099,7 @@ export default class Xapi extends XapiBase {
 
     // First, create a small VDI (10MB) which will become the ConfigDrive
     const buffer = fatfsBufferInit()
-    const vdi = await this.createVdi(buffer.length, { name_label: 'XO CloudConfigDrive', name_description: undefined, sr: sr.$ref })
+    const vdi = await this.createVdi(buffer.length, { name_label: 'VS CloudConfigDrive', name_description: undefined, sr: sr.$ref })
     $onFailure(() => this._deleteVdi(vdi))
 
     // Then, generate a FAT fs

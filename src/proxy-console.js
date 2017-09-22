@@ -25,7 +25,7 @@ export default function proxyConsole (ws, vmConsole, sessionId) {
 
     const onSend = (error) => {
       if (error) {
-        debug('error sending to the XO client: %s', error.stack || error.message || error)
+        debug('error sending to the VS client: %s', error.stack || error.message || error)
       }
     }
 
@@ -48,7 +48,7 @@ export default function proxyConsole (ws, vmConsole, sessionId) {
     ws
       .on('error', error => {
         closed = true
-        debug('error from the XO client: %s', error.stack || error.message || error)
+        debug('error from the VS client: %s', error.stack || error.message || error)
 
         socket.close()
       })
@@ -60,7 +60,7 @@ export default function proxyConsole (ws, vmConsole, sessionId) {
       .on('close', () => {
         if (!closed) {
           closed = true
-          debug('disconnected from the XO client')
+          debug('disconnected from the VS client')
         }
 
         socket.end()
