@@ -1,5 +1,6 @@
 import fs from 'fs-extra'
 import * as child from 'child_process'
+import streamToNewBuffer from '../stream-to-new-buffer'
 // ===================================================================
 
 export function clean () {
@@ -40,43 +41,46 @@ export async function getLicense () {
   const src = fs.createReadStream(licensefile)
   const de = child.spawn('gpg', ['--status-fd', '2', '--decrypt'])
   src.pipe(de.stdin)
-  de.stderr.on('data', (data) => {
-    let validsig = false
-    let trust = false
-    let validfinger = false
-    console.log(`gpg stderr:\n${data}`)
-    let lines = data.split('\n')
-    lines.forEach(function(line) {
-      if (line.startsWith('[GNUPG:] GOODSIG')) {
-        validsig = true
-      }
-    })
-    lines.forEach(function(line) {
-      if (line.startsWith('[GNUPG:] TRUST_ULTIMATE')) {
-        trust = true
-      }
-    })
-    lines.forEach(function(line) {
-      if (line.startsWith('[GNUPG:] VALIDSIG')) {
-        let finger = line.split(' ')[2]  
-        if (finger === 'A83B AA6F 2FD3 B493 256F  E753 D544 C62C 6AE0 3E6D') {
-          validfinger = true
-        }
-      }
-    })
+  let results = await Promise.all([streamToNewBuffer(de.stderr), streamToNewBuffer(de.stdout)])
 
-    if (!validsig || !trust || !validfinger) {
-      throw new Error('The licnse file is invalid')
+  let validsig = false
+  let trust = false
+  let validfinger = false
+  let lines = results[0].toString().split('\n')
+  lines.forEach(function(line) {
+    if (line.startsWith('[GNUPG:] GOODSIG')) {
+      validsig = true
     }
   })
-  de.stdout.on('data', (data) => {
-    console.log(`gpg stdout:\n${data}`)
-    this.importLicense(JSON.parse(data))
-    return JSON.parse(data)
+  lines.forEach(function(line) {
+    if (line.startsWith('[GNUPG:] TRUST_ULTIMATE')) {
+      trust = true
+    }
   })
+  lines.forEach(function(line) {
+    if (line.startsWith('[GNUPG:] VALIDSIG')) {
+      let finger = line.split(' ')[2]  
+      if (finger === '462F56EE9B344DBDE3136F12F3EA515A80173E5C') {
+        validfinger = true
+      }
+    }
+  })
+  if (!validsig) {
+    throw new Error('The licnse is invalidsignature')
+  }
+  if (!trust) {
+    throw new Error('The licnse is not trusted')
+  }
+  if (!validfinger) {
+    throw new Error('The licnse is invalid finger')
+  }
+  console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+  console.log(JSON.parse(results[1].toString()))
+  console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+  return JSON.parse(results[1].toString())
 }
 
-get.permission = 'admin'
-get.description = 'Gets existing License'
+getLicense.permission = 'admin'
+getLicense.description = 'Gets existing License'
 
 
