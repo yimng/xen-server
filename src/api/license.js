@@ -38,6 +38,17 @@ importLicense.permission = 'admin'
 
 export async function getLicense () {
   const licensefile = '/etc/license'
+  console.log('verify the license file exists or not')
+  console.log(fs.pathExistsSync(licensefile))
+  if (!fs.pathExistsSync(licensefile)) {
+    console.log('>>>>>>>>>>>>>>>>>>>>the license file is not existing')
+    return {
+      edition: 1,
+      expire: 12324343
+    }
+  }
+  console.log('start verify license>>>>>>>>>>>>>>>>>>>>>>>>>>')
+
   const src = fs.createReadStream(licensefile)
   const de = child.spawn('gpg', ['--status-fd', '2', '--decrypt'])
   src.pipe(de.stdin)
