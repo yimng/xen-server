@@ -17,6 +17,7 @@ export async function startTrial() {
     let expire = now.setDate(now.getDate() + 30);
     let trial = {
       edition: 4,
+      plan: 'trial',
       expire: expire,
     }
     fs.outputJsonSync(licensefile, trial)
@@ -27,21 +28,83 @@ startTrial.permission = 'admin'
 export async function importLicense () {
   return {
     $sendTo: await this.registerHttpRequest(async (req, res) => {
+      const tmpfile = '/tmp/lic_tmp'
       const licensefile = '/etc/license'
-      const dest = fs.createWriteStream(licensefile)
+      const dest = fs.createWriteStream(tmpfile)
       req.pipe(dest)
-      const src = fs.createReadStream(licensefile)
+
+      const src = fs.createReadStream(tmpfile)
       const de = child.spawn('gpg', ['--status-fd', '2', '--decrypt'])
       src.pipe(de.stdin)
-      de.stderr.on('data', (data) => {
-        console.log(`gpg stderr:\n${data}`)
-      })
+      let results = await Promise.all([streamToNewBuffer(de.stderr), streamToNewBuffer(de.stdout)])
 
-      de.stdout.on('data', (data) => {
-        console.log(`gpg stdout:\n${data}`)
-        this.importLicense(JSON.parse(data))
+      let validsig = false
+      let trust = false
+      let validfinger = false
+      let lines = results[0].toString().split('\n')
+      lines.forEach(function(line) {
+        if (line.startsWith('[GNUPG:] GOODSIG')) {
+          validsig = true
+        }
       })
-
+      lines.forEach(function(line) {
+        if (line.startsWith('[GNUPG:] TRUST_ULTIMATE')) {
+          trust = true
+        }
+      })
+      lines.forEach(function(line) {
+        if (line.startsWith('[GNUPG:] VALIDSIG')) {
+          let finger = line.split(' ')[2]  
+          if (finger === '462F56EE9B344DBDE3136F12F3EA515A80173E5C') {
+            validfinger = true
+          }
+        }
+      })
+      if (!validsig) {
+        res.writeHead(200, 'invalidsig')
+        res.end()
+        return
+      }
+      if (!trust) {
+        res.writeHead(200, 'untrusted')
+        res.end()
+        return
+      }
+      if (!validfinger) {
+        res.writeHead(200, 'invalidfinger')
+        res.end()
+        return
+      }
+      let license = JSON.parse(results[1].toString())
+      let cpus = os.cpus()
+      let model = cpus[0].model
+      let networks = os.networkInterfaces()
+      let cpumodel = cpus[0].model
+      let macs = []
+      let keys = Object.keys(networks)
+      for (var key of keys) {
+        let ifc = networks[key]
+        macs.push(ifc[0].mac)
+      }
+      let validmac = false
+      for (var mac of macs) {
+        if (mac === license.mac) {
+          validmac = true
+          break
+        }
+      }
+      let validcpu = cpumodel === license.cpu
+      if (!validmac) {
+        res.writeHead(200, 'invalidmac')
+        res.end()
+        return
+      }
+      if (!validcpu) {
+        res.writeHead(200, 'invalidcpu')
+        res.end()
+        return
+      }
+      fs.copySync(tmpfile, licensefile)
       res.end('license successfully imported')
     })
   }
@@ -59,8 +122,9 @@ export async function getLicense () {
       console.log('>>>>>>>>>>>>>>>>>>>>the license file is not existing')
       return {
         edition: 1,
+        plan: 'free',
         state: 'default',
-        message: 'No license file found'
+        message: 'This license is free'
       }
     } else {
       return fs.readJsonSync(trial)
@@ -98,18 +162,21 @@ export async function getLicense () {
   if (!validsig) {
     return {
       edition: 1,
+      plan: 'free',
       message: 'The license is invalid signature'
     }
   }
   if (!trust) {
     return {
       edition: 1,
+      plan: 'free',
       message: 'The license is not trusted'
     }
   }
   if (!validfinger) {
     return {
       edition: 1,
+      plan: 'free',
       message: 'The license is invalid finger print'
     }
   }
@@ -146,12 +213,14 @@ export async function getLicense () {
   if (!validmac) {
     return {
       edition: 1,
+      plan: 'free',
       message: 'The mac info is not apply for this vStorage'
     }
   }
   if (!validcpu) {
     return {
       edition: 1,
+      plan: 'free',
       message: 'The cpu info in license is not apply for this vStorage'
     }
   }
@@ -161,4 +230,39 @@ export async function getLicense () {
 getLicense.permission = 'admin'
 getLicense.description = 'Gets existing License'
 
+
+export async function applyLicense() {
+  return {
+    $getFrom: await this.registerHttpRequest((req, res) => {
+      res.writeHead(200, 'OK', {
+        'content-disposition': 'attachment'
+      })
+      let cpus = os.cpus()
+      console.log(cpus)
+      let networks = os.networkInterfaces()
+      console.log(networks)
+      let macs = []
+      let keys = Object.keys(networks)
+      console.log(keys)
+      for (let key of keys) {
+        if (key === 'lo')
+          continue
+        let ifc = networks[key]
+        macs.push(ifc[0].mac)
+      }
+      let license = {
+        mac: macs[0],
+        cpu: cpus[0].model
+      }
+      const encrypt = child.spawn('gpg', ['--recipient', 'Lukun', '--encrypt'])
+      encrypt.stdin.write(JSON.stringify(license))
+      encrypt.stdin.end()
+      encrypt.stdout.pipe(res)
+      return
+    },
+    undefined,
+    { suffix: '/license.request' })
+  }
+}
+applyLicense.permission = 'admin'
 
