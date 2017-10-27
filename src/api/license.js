@@ -34,7 +34,7 @@ export async function importLicense () {
       req.pipe(dest)
 
       const src = fs.createReadStream(tmpfile)
-      const de = child.spawn('gpg', ['--status-fd', '2', '--decrypt'])
+      const de = child.spawn('gpg', ['--homedir', '/opt/xensource/gpg', '--status-fd', '2', '--decrypt'])
       src.pipe(de.stdin)
       let results = await Promise.all([streamToNewBuffer(de.stderr), streamToNewBuffer(de.stdout)])
 
@@ -55,7 +55,7 @@ export async function importLicense () {
       lines.forEach(function(line) {
         if (line.startsWith('[GNUPG:] VALIDSIG')) {
           let finger = line.split(' ')[2]  
-          if (finger === '462F56EE9B344DBDE3136F12F3EA515A80173E5C') {
+          if (finger === 'A83BAA6F2FD3B493256FE753D544C62C6AE03E6D') {
             validfinger = true
           }
         }
@@ -133,7 +133,7 @@ export async function getLicense () {
   console.log('start verify license>>>>>>>>>>>>>>>>>>>>>>>>>>')
 
   const src = fs.createReadStream(licensefile)
-  const de = child.spawn('gpg', ['--status-fd', '2', '--decrypt'])
+  const de = child.spawn('gpg', ['--homedir', '/opt/xensource/gpg', '--status-fd', '2', '--decrypt'])
   src.pipe(de.stdin)
   let results = await Promise.all([streamToNewBuffer(de.stderr), streamToNewBuffer(de.stdout)])
 
@@ -154,7 +154,7 @@ export async function getLicense () {
   lines.forEach(function(line) {
     if (line.startsWith('[GNUPG:] VALIDSIG')) {
       let finger = line.split(' ')[2]  
-      if (finger === '462F56EE9B344DBDE3136F12F3EA515A80173E5C') {
+      if (finger === 'A83BAA6F2FD3B493256FE753D544C62C6AE03E6D') {
         validfinger = true
       }
     }
@@ -251,10 +251,12 @@ export async function applyLicense() {
         macs.push(ifc[0].mac)
       }
       let license = {
+        edition: '4',
+        plan: 'premium',
         mac: macs[0],
         cpu: cpus[0].model
       }
-      const encrypt = child.spawn('gpg', ['--recipient', 'Lukun', '--encrypt'])
+      const encrypt = child.spawn('gpg', ['--homedir', '/opt/xensource/gpg', '--recipient', 'halsign', '--encrypt'])
       encrypt.stdin.write(JSON.stringify(license))
       encrypt.stdin.end()
       encrypt.stdout.pipe(res)
