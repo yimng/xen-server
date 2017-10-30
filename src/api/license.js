@@ -38,6 +38,8 @@ export async function importLicense () {
       src.pipe(de.stdin)
       let results = await Promise.all([streamToNewBuffer(de.stderr), streamToNewBuffer(de.stdout)])
 
+      console.log(results[0].toString())
+      console.log(results[1].toString())
       let validsig = false
       let trust = false
       let validfinger = false
@@ -238,12 +240,9 @@ export async function applyLicense() {
         'content-disposition': 'attachment'
       })
       let cpus = os.cpus()
-      console.log(cpus)
       let networks = os.networkInterfaces()
-      console.log(networks)
       let macs = []
       let keys = Object.keys(networks)
-      console.log(keys)
       for (let key of keys) {
         if (key === 'lo')
           continue
@@ -257,7 +256,8 @@ export async function applyLicense() {
         cpu: cpus[0].model
       }
       const encrypt = child.spawn('gpg', ['--homedir', '/opt/xensource/gpg', '--recipient', 'halsign', '--encrypt'])
-      encrypt.stdin.write(JSON.stringify(license))
+      let str = JSON.stringify(license)
+      encrypt.stdin.write(str)
       encrypt.stdin.end()
       encrypt.stdout.pipe(res)
       return

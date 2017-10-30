@@ -26,8 +26,8 @@ mkdir -p %{buildroot}/etc/systemd/system
 
 rm -rf ~/vs-server
 rm -rf ~/vs-web
-git clone -b stable git:git@192.166.30.211:/data/git/vStorage/vs-server ~/vs-server
-git clone -b stable git:git@192.166.30.211:/data/git/vStorage/vs-web ~/vs-web
+git clone -b stable 192.166.30.211:/data/git/vStorage/vs-server ~/vs-server
+git clone -b stable 192.166.30.211:/data/git/vStorage/vs-web ~/vs-web
 cp ~/vs-server/sample.config.yaml ~/vs-server/.xo-server.yaml
 
 cp -r  ~/vs-server/* %{buildroot}/usr/lib/node_modules/vs-server
