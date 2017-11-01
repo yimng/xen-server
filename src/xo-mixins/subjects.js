@@ -69,7 +69,7 @@ export default class {
       )
 
       if (!await usersDb.exists()) {
-        const email = 'admin@admin.net'
+        const email = 'admin'
         const password = 'admin'
 
         await this.createUser({email, password, permission: 'admin'})
