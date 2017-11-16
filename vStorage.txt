@@ -1,0 +1,61 @@
+1.Updating SSL self-signed certificate
+
+If the provided certificate is expired, you may want to create a new one.
+
+Connect to your appliance via SSH as root, and execute these commands:
+
+$ cd /etc/ssl
+$ cp server.crt server.crt.old
+$ cp server.key server.key.old
+$ openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -nodes -days 360
+$ systemctl restart xo-server.servic
+edit .xo-server.yaml, uncomment the line port: 443 and cert: '/etc/ssl/server.crt' to support https
+
+2.Reset XO configuration
+
+If you have problems with your xo-server configuration, you can reset the database. This operation will delete all your configured users and servers:
+
+redis-cli
+FLUSHALL
+systemctl restart xo-server.service
+You can now log in with admin@admin.net and admin password.
+
+3. Out of memory
+Sometimes xo-server runs out of memory, this can be seen in the logs (journalctl -u xo-server.service
+In that case you need to do to increase the allocated memory to the XOA VM (from 2GB to 4 or 8 GB), and then update the service file (/etc/systemd/system/xo-server.service) to increase the allocated memory to xo-server itself:
+
+- ExecStart=/usr/local/bin/xo-server
++ ExecStart=/usr/local/bin/node --max-old-space-size=8192 /usr/local/bin/xo-server
+
+4 Error messages
+
+4.1 unhealthy VDI chain
+
+This message is relevent for Continuous Delta Backup or Continuous Replication only.
+
+It means your previous VM disks and snapshots should be "merged" (coalesced in the XenServer world) before we take a new snapshot. This mechanism is handled by XenServer itself, not us. But we can check your existing chain and avoiding creating more snapshots than your storage can merge.
+
+Without this detection, you could have 2 potential issues:
+
+The Snapshot Chain is too Long
+SR_BACKEND_FAILURE_44 (insufficient space)
+First one is a chain that contains more than 30 elements (fixed XenServer limit), and the other one means it's full because "coalesced" also can't keep up the pace and the storage is filled.
+
+In the end, this message is a protection mechanism against damaging your SR. THe backup job will fail but maybe next time it will be run, that chain will be OK.
+
+4.2 SR_BACKEND_FAILURE_44 (insufficient space)
+
+This message could be triggered by any backup method.
+
+The Storage Repository (where your VM disks are currently stored) is full. Note that doing a snapshot on a thick provisioned SR (LVM family for all block devices, like iSCSI, HBA or Local LVM) will consume the current disk size. Eg if you are using this kind of SR at more than 50% and you want to backup ALL VM disks on it, you'll hit this wall.
+
+Workarounds:
+
+use a thin provisioned SR (local ext, NFS, XOSAN)
+wait for Citrix to release thin provisioning on LVM
+wait for Citrix to allow another mechanism than snapshot to be able to export disks
+use less than 50% of SR space or don't backup all VMs
+
+4.3 Could not find the base VM
+
+This message appears when the previous replicated VM has been deleted on the target side which breaks the replication. To reset the process it's necessary to delete VM snapshot related to this CR job on the original VM. The name of this snapshot is: XO_DELTA_EXPORT: <name label of target SR> (<UUID of target SR>)
